@@ -1,5 +1,6 @@
 import torch
 from collections import defaultdict
+from lastSAM import orthogonalize_grads
 
 class ASAM:
     def __init__(self, optimizer, model, rho=0.5, eta=0.01):

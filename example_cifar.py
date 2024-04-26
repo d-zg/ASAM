@@ -7,6 +7,7 @@ from torchvision.datasets import CIFAR10, CIFAR100
 from timm.loss import LabelSmoothingCrossEntropy
 from homura.vision.models.cifar_resnet import wrn28_2, wrn28_10, resnet20, resnet56, resnext29_32x4d
 from asam import ASAM, SAM
+from lastSAM import orthogonalize_grads
 
 def load_cifar(data_loader, batch_size=256, num_workers=2):
     if data_loader == CIFAR10:
@@ -38,12 +39,13 @@ def load_cifar(data_loader, batch_size=256, num_workers=2):
    
 
 def train(args): 
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     # Data Loader
     train_loader, test_loader = load_cifar(eval(args.dataset), args.batch_size)
     num_classes = 10 if args.dataset == 'CIFAR10' else 100
 
     # Model
-    model = eval(args.model)(num_classes=num_classes).cuda()
+    model = eval(args.model)(num_classes=num_classes).to(device)
 
     # Minimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, 
@@ -60,6 +62,36 @@ def train(args):
         criterion = torch.nn.CrossEntropyLoss()
 
     best_accuracy = 0.
+
+    if args.last:
+        # Regular SGD for args.epochs epochs
+        print(f"Doing SGD w/o flatness optimization for {args.apochs} epochs")
+        for epoch in range(args.apochs):
+            model.train()
+            for inputs, targets in train_loader:
+                inputs = inputs.to(device)
+                targets = targets.to(device)
+
+                optimizer.zero_grad()
+                predictions = model(inputs)
+                loss = criterion(predictions, targets)
+                loss.backward()
+                optimizer.step()
+
+            # Test
+            model.eval()
+            accuracy = 0.
+            cnt = 0.
+            with torch.no_grad():
+                for inputs, targets in test_loader:
+                    inputs = inputs.to(device)
+                    targets = targets.to(device)
+                    predictions = model(inputs)
+                    accuracy += (torch.argmax(predictions, 1) == targets).sum().item()
+                    cnt += len(targets)
+                accuracy *= 100. / cnt
+            print(f"Epoch: {epoch}, Test accuracy: {accuracy:6.2f} %")
+
     for epoch in range(args.epochs):
         # Train
         model.train()
@@ -67,8 +99,8 @@ def train(args):
         accuracy = 0.
         cnt = 0.
         for inputs, targets in train_loader:
-            inputs = inputs.cuda()
-            targets = targets.cuda()
+            inputs = inputs.to(device)
+            targets = targets.to(device)
 
             # Ascent Step
             predictions = model(inputs)
@@ -76,8 +108,28 @@ def train(args):
             batch_loss.mean().backward()
             minimizer.ascent_step()
 
+            # save the first set of gradients 
+            if args.orthogonalize:
+                grads_first = []
+                for param in model.parameters():
+                    grads_first.append(param.grad.clone())
+
             # Descent Step
             criterion(model(inputs), targets).mean().backward()
+
+            if args.orthogonalize:
+                grads_second = []
+                for param in model.parameters():
+                    grads_second.append(param.grad.clone())
+                
+                # Orthogonalize the second set of gradients with respect to the first
+                for i in range(len(grads_second)):
+                    grads_second[i] -= torch.dot(grads_second[i].view(-1), grads_first[i].view(-1)) / torch.dot(grads_first[i].view(-1), grads_first[i].view(-1)) * grads_first[i]
+                
+                # Update the model parameters with the orthogonalized gradients
+                for param, grad in zip(model.parameters(), grads_second):
+                    param.grad = grad
+
             minimizer.descent_step()
 
             with torch.no_grad():
@@ -96,8 +148,8 @@ def train(args):
         cnt = 0.
         with torch.no_grad():
             for inputs, targets in test_loader:
-                inputs = inputs.cuda()
-                targets = targets.cuda()
+                inputs = inputs.to(device)
+                targets = targets.to(device)
                 predictions = model(inputs)
                 loss += criterion(predictions, targets).sum().item()
                 accuracy += (torch.argmax(predictions, 1) == targets).sum().item()
@@ -123,6 +175,10 @@ if __name__ == "__main__":
     parser.add_argument("--smoothing", default=0.1, type=float, help="Label smoothing.")
     parser.add_argument("--rho", default=0.5, type=float, help="Rho for ASAM.")
     parser.add_argument("--eta", default=0.0, type=float, help="Eta for ASAM.")
+    parser.add_argument("--last", default=False, type=int, help="whether or not to do lastSAM")
+    parser.add_argument("--apochs", default=50, type=int, help="how many epochs of SGD before normal SAM")
+    parser.add_argument("--orthogonalize", default=0, type=int, help="whether or not to orthogonalize SAM/ASAM steps to regular loss grad")
+    parser.add_argument("--device", default="cuda:0", type=str, help="device to use")
     args = parser.parse_args()
     assert args.dataset in ['CIFAR10', 'CIFAR100'], \
             f"Invalid data type. Please select CIFAR10 or CIFAR100"
