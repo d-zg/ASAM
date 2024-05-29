@@ -1,6 +1,6 @@
 # LastSAM: Sharpness-Aware Minimization at the End
 
-This repository contains an implementation of LastSAM, a variant of Sharpness-Aware Minimization (SAM) that applies sharpness-aware optimization only after a model has been trained using standard optimization techniques. LastSAM aims to improve the generalization performance of deep learning models by finding flatter minima in the loss landscape, while being more computationally efficient than the original SAM and Adaptive SAM (ASAM) methods.
+This repository contains an my final project for CS 8395, Topics in Deep Learning. It contains an implementation of LastSAM, a variant of Sharpness-Aware Minimization (SAM) that applies sharpness-aware optimization only after a model has been trained using standard optimization techniques. LastSAM aims to improve the generalization performance of deep learning models by finding flatter minima in the loss landscape, while being more computationally efficient than the original SAM and Adaptive SAM (ASAM) methods. 
 
 ## Motivation
 
@@ -14,6 +14,7 @@ This project is built upon the ASAM implementation available at [link to the ori
 
 2. `ASAM.py`: The original ASAM implementation has been modified to support the LastSAM approach.
 
+3. `Last-SAM.pdf`: my final report for the project.
 ## Usage
 
 To use LastSAM in your deep learning project, follow these steps:
