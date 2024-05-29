@@ -1,52 +1,38 @@
-# Adaptive Sharpness-Aware Minimization (ASAM)
+# LastSAM: Sharpness-Aware Minimization at the End
 
-This repository contains Adaptive Sharpness-Aware Minimization (ASAM) for training rectifier neural networks.
-This is an official repository for [ASAM: Adaptive Sharpness-Aware Minimization for Scale-Invariant Learning of Deep Neural Networks](https://arxiv.org/abs/2102.11600) which is **accepted to International Conference on Machine Learning (ICML) 2021**.
+This repository contains an implementation of LastSAM, a variant of Sharpness-Aware Minimization (SAM) that applies sharpness-aware optimization only after a model has been trained using standard optimization techniques. LastSAM aims to improve the generalization performance of deep learning models by finding flatter minima in the loss landscape, while being more computationally efficient than the original SAM and Adaptive SAM (ASAM) methods.
 
-<p align="center">
-  <img src="img/thumbnail.png" alt="Trajectories of SAM and ASAM" width="512"/>  
-</p>
+## Motivation
 
+Sharpness-Aware Minimization (SAM) and its adaptive variant, ASAM, have shown promising results in improving the generalization performance of deep learning models by simultaneously minimizing the loss value and the loss sharpness. However, these methods can be computationally expensive and may require extensive hyperparameter tuning. LastSAM addresses these limitations by applying SAM or ASAM only during the last few epochs of training, after the model has been trained using standard optimization techniques such as Stochastic Gradient Descent (SGD).
 
-## Abstract
-Recently, learning algorithms motivated from sharpness of loss surface as an effective measure of generalization gap have shown state-of-the-art performances. Nevertheless, sharpness defined in a rigid region with a fixed radius, has a drawback in sensitivity to parameter re-scaling which leaves the loss unaffected, leading to weakening of the connection between sharpness and generalization gap. In this paper, we introduce the concept of adaptive sharpness which is scale-invariant and propose the corresponding generalization bound. We suggest a novel learning method, adaptive sharpness-aware minimization (ASAM), utilizing the proposed generalization bound. Experimental results in various benchmark datasets show that ASAM contributes to significant improvement of model generalization performance.
+## Implementation
 
-## Getting Started
-### Requirements
-- PyTorch (>= 1.8)
-- torchvision (>= 0.9)
-- timm (>= 0.4.9)
-- homura-core (>= 2021.3.1)
+This project is built upon the ASAM implementation available at [link to the original ASAM repository]. The main contributions of this repository are:
 
-### Train Examples (CIFAR)
-CIFAR-10 dataset:
-```
-python example_cifar.py --dataset CIFAR10 --minimizer ASAM --rho 0.5
-```
-CIFAR-100 dataset:
-```
-python example_cifar.py --dataset CIFAR100 --minimizer ASAM --rho 1.0
-```
-We can also run SAM optimizer for CIFAR-10 or CIFAR-100 dataset:
-```
-python example_cifar.py --dataset CIFAR10 --minimizer SAM --rho 0.05
-python example_cifar.py --dataset CIFAR100 --minimizer SAM --rho 0.10
-```
+1. `lastSAM.py`: This file contains the implementation of the LastSAM optimizer, which applies SAM or ASAM during the last few epochs of training.
 
-## Citation
-If you found this code useful please cite our paper
+2. `ASAM.py`: The original ASAM implementation has been modified to support the LastSAM approach.
 
-```
-@article{kwon2021asam,
-  title={ASAM: Adaptive Sharpness-Aware Minimization for Scale-Invariant Learning of Deep Neural Networks},
-  author={Kwon, Jungmin and Kim, Jeongseop and Park, Hyunseo and Choi, In Kwon},
-  journal={arXiv preprint arXiv:2102.11600},
-  year={2021}
-}
-```
+## Usage
 
-## Contributors
-Jungmin Kwon (jungmin.kwon@samsung.com)\
-Jeongseop Kim (jisean.kim@samsung.com)\
-Hyunseo Park (hyunseo.park@samsung.com)\
-In Kwon Choi (ik21.choi@samsung.com)
+To use LastSAM in your deep learning project, follow these steps:
+
+1. Clone this repository:
+
+``` git clone https://github.com/yourusername/LastSAM.git```
+
+2. Install the required dependencies:
+
+```pip install -r requirements.txt```
+
+3.  Import the LastSAM optimizer in your training scipt and use it during training.
+
+## Experiments
+The effectiveness of LastSAM has been demonstrated on the CIFAR-10 dataset using ResNet20 and WRN-28-10 architectures. The results show that LastSAM achieves slightly better or comparable test accuracies compared to the default SAM and ASAM methods, while being more computationally efficient and robust to hyperparameter choices.
+
+## Acknowledgements
+
+- The original ASAM implementation: https://github.com/SamsungLabs/ASAM
+
+- The authors of the SAM and ASAM papers for their influential work in sharpness-aware optimization.
